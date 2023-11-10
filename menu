@@ -12,6 +12,7 @@ texto="$2"
     --button=Aceptar
 }
 
+
 ListG() {
 yad --form \
   --title=" * Listado de grupos * " \
