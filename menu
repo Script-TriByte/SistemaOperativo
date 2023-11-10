@@ -1,0 +1,354 @@
+infoYad() {
+
+titulo="$1"
+texto="$2"
+  yad --title="${titulo}" \
+    --image=gtk-info \
+    --center \
+    --width=340 \
+    --height=80 \
+    --text-align=center \
+    --text="${texto}" \
+    --button=Aceptar
+}
+
+ListG() {
+yad --form \
+  --title=" * Listado de grupos * " \
+  --width=400 \
+  --height=100 \
+  --center \
+  --field="Nombre de grupo : " "$grp" 
+
+}
+
+ConsG() {
+grp=grp
+sal=$(yad --form \
+  --title=" * Consulta de grupo * " \
+  --width=400 \
+  --height=100 \
+  --center \
+  --field="Nombre de grupo : " "$grp" )
+if [ $? -ne 0 ]; then return; fi 
+grp=$(echo $sal | cut -f1 -d'|')
+vgc='grep '$grp' '/etc/group
+sal=$(echo $vgc | bash 2>&1)
+res=$?
+titulo=' * CONSULTA de GRUPO * '
+if [ $res -eq 0 ]
+then
+  texto="<span weight=\"bold\" foreground=\"green\">Consulta : </span> exitosa !\n$sal"
+  infoYad "$titulo" "$texto"
+else
+  texto="<span weight=\"bold\" foreground=\"red\">Consulta : </span> fallida !(grupo $grp NO EXISTE)"
+  infoYad "$titulo" "$texto"
+fi
+}
+
+ModifG() {
+grp=grp
+ngrp=ngrp
+sal=$(yad --form \
+  --title=" * Modificación de grupo * " \
+  --width=400 \
+  --height=200 \
+  --center \
+  --field="Nombre de grupo : " "$grp" \
+  --field="Nuevo nombre de grupo : " "$ngrp" )
+if [ $? -ne 0 ]; then return; fi # Escape, Cancelar, cruz : vuelvo al invocante
+grp=$(echo $sal | cut -f1 -d'|')
+ngrp=$(echo $sal | cut -f2 -d'|')
+vgm='groupmod -n '$ngrp' '$grp
+sal=$(echo $vgm | bash 2>&1)
+res=$?
+titulo=' * MODIFICACIÓN de GRUPO * '
+if [ $res -eq 0 ]
+then
+  texto="<span weight=\"bold\" foreground=\"green\">Modificación : </span> exitosa !"
+  infoYad "$titulo" "$texto"
+else
+  texto="<span weight=\"bold\" foreground=\"red\">Modificación : </span> fallida ! ($sal)"
+  infoYad "$titulo" "$texto"
+fi
+}
+
+BajaG() {
+grp=grp
+sal=$(yad --form \
+  --title=" * Baja de grupo * " \
+  --width=400 \
+  --height=100 \
+  --center \
+  --field="Nombre de grupo : " "$grp" )
+if [ $? -ne 0 ]; then return; fi 
+grp=$(echo $sal | cut -f1 -d'|')
+vgd='sudo groupdel '$grp
+sal=$(echo $vgd | bash 2>&1)
+res=$?
+titulo=' * BAJA de GRUPO * '
+if [ $res -eq 0 ]
+then
+  texto="<span weight=\"bold\" foreground=\"green\">Baja : </span> exitosa !"
+  infoYad "$titulo" "$texto"
+else
+  texto="<span weight=\"bold\" foreground=\"red\">Baja : </span> fallida ! ($sal)"
+  infoYad "$titulo" "$texto"
+fi
+}
+
+AltaU() {
+sudo sh alta-usuario
+}
+
+BajaU(){
+sudo sh baja-usuario
+}
+
+AltaG() {
+grp=grp
+sal=$(yad --form \
+  --title=" * Alta de grupo * " \
+  --width=400 \
+  --height=100 \
+  --center \
+  --field="Nombre de grupo : " "$grp" )
+if [ $? -ne 0 ]; then return; fi 
+grp=$(echo $sal | cut -f1 -d'|')
+vga='sudo groupadd '$grp
+sal=$(echo $vga | bash 2>&1)
+res=$?
+titulo=' * ALTA de GRUPO * '
+if [ $res -eq 0 ]
+then
+  texto="<span weight=\"bold\" foreground=\"green\">Alta : </span> exitosa !"
+  infoYad "$titulo" "$texto"
+else
+  texto="<span weight=\"bold\" foreground=\"red\">Alta : </span> fallida ! ($sal)"
+  infoYad "$titulo" "$texto"
+fi
+}
+
+ConsU() {
+usr=usr
+sal=$(yad --form \
+  --title=" * Consulta de usuario * " \
+  --width=400 \
+  --height=100 \
+  --center \
+  --field="Nombre del usuario : " "$grp" )
+if [ $? -ne 0 ]; then return; fi 
+usr=$(echo $sal | cut -f1 -d'|')
+vgc='grep '$usr' '/etc/usuario
+sal=$(echo $vgc | bash 2>&1)
+res=$?
+titulo=' * CONSULTA del USUARIO * '
+if [ $res -eq 0 ]
+then
+  texto="<span weight=\"bold\" foreground=\"green\">Consulta : </span> exitosa !\n$sal"
+  infoYad "$titulo" "$texto"
+else
+  texto="<span weight=\"bold\" foreground=\"red\">Consulta : </span> fallida !(usuario $usr NO EXISTE)"
+  infoYad "$titulo" "$texto"
+fi
+}
+
+ListU() {
+usuarios=$(cut -d: -f1 /etc/passwd)
+
+# Convertir la lista en un formato adecuado para yad
+usuarios_formateados=""
+for usuario in $usuarios
+do
+  usuarios_formateados="$usuarios_formateados $usuario off"
+done
+
+# Mostrar la lista de usuarios utilizando yad
+yad --list \
+  --title="Lista de Usuarios" \
+  --center \
+  --width=400 \
+  --height=300 \
+  --column="Nombre de Usuario" \
+  $usuarios_formateados
+}
+
+ModifU() {
+  while true; do
+    username_to_modify=$(yad --form \
+      --title="Modificación de Usuario" \
+      --width=400 \
+      --center \
+      --field="Nombre de Usuario a Modificar:" "" \
+      --button="Cancelar:1" \
+      --button="Aceptar:0")
+
+    exitcode=$?
+
+    if [ $exitcode -eq 1 ]; then
+      return
+    fi
+
+    if id "$username_to_modify" >/dev/null 2>&1; then
+      choice=$(yad --form \
+        --title="Modificación de Usuario" \
+        --width=400 \
+        --height=300 \
+        --center \
+        --field="Modificar Comentario:" "" \
+        --field="Modificar Directorio de Inicio:" "" \
+        --field="Modificar Grupo:" "" \
+        --field="Modificar Nombre:" "" \
+        --field="Modificar Contraseña::H" "" \
+        --field="Modificar Shell:" "" \
+        --field="Modificar UID:" "" \
+        --field="Bloquear Usuario:CHK" "false" \
+        --field="Desbloquear Usuario:CHK" "false" \
+        --button="Cancelar:1" \
+        --button="Aceptar:0")
+
+      exitcode=$?
+
+      if [ $exitcode -eq 1 ]; then
+        return
+      fi
+
+      comment=$(echo "$choice" | cut -d '|' -f 1)
+      home_dir=$(echo "$choice" | cut -d '|' -f 2)
+      group=$(echo "$choice" | cut -d '|' -f 3)
+      new_name=$(echo "$choice" | cut -d '|' -f 4)
+      password=$(echo "$choice" | cut -d '|' -f 5)
+      shell=$(echo "$choice" | cut -d '|' -f 6)
+      uid=$(echo "$choice" | cut -d '|' -f 7)
+      lock_user=$(echo "$choice" | cut -d '|' -f 8)
+      unlock_user=$(echo "$choice" | cut -d '|' -f 9)
+
+      if [ "$lock_user" == "TRUE" ]; then
+        sudo passwd -l "$username_to_modify"
+      fi
+
+      if [ "$unlock_user" == "TRUE" ]; then
+        sudo passwd -u "$username_to_modify"
+      fi
+
+# Modificar el usuario y capturar el resultado
+      resultado_modificacion=$(sudo usermod -c "$comment" -d "$home_dir" -g "$group" -l "$new_name" -s "$shell" -u "$uid" "$username_to_modify" 2>&1)
+
+titulo='Modificación de Usuario'
+      # Verificar si hubo un error en la modificación
+      if [ $? -eq 0 ]; then
+        # Mensaje de éxito
+        texto="<span weight="bold" foreground="green">Modificación exitosa:</span> El usuario $username_to_modify ha sido modificado correctamente."
+        infoYad "$titulo" "$texto"
+      else
+        # Mensaje de error
+        texto="<span weight="bold" foreground="red">Error de modificación:</span> $resultado_modificacion"
+        infoYad "$titulo" "$texto"
+      fi
+    else
+      # Mensaje de error si el usuario no existe
+     
+      texto="<span weight="bold" foreground="red">Error de modificación:</span> El usuario $username_to_modify no existe."
+      infoYad "$titulo" "$texto"
+    fi
+  done
+}
+
+Usuarios() {
+while true
+do
+  opcion=$(yad --list \
+    --title=" * SUB MENU usuarios * " \
+    --height=300 \
+    --width=300 \
+    --button=Aceptar:0 \
+    --center \
+    --text="Selecciona A B M C L : " \
+    --column="ABMCL Usuarios" \
+    "Alta" "Baja" "Modificacion" "Consulta" "Listado" "Salir (Esc)")
+  ans=$?
+  if [ $ans -eq 0 ]
+  then
+    case $opcion in
+    Alta*)
+      AltaU;;
+    Baja*)
+      BajaU;;
+    Modif*)
+      ModifU;;
+    Consulta*)
+      ConsU;;
+    Listado*)
+      ListU;;
+    Salir*)
+      return;;
+    esac
+  else
+    return
+  fi
+done
+}
+
+Grupos() {
+while true
+do
+  opcion=$(yad --list \
+    --title=" * SUB MENU grupos * " \
+    --height=300 \
+    --width=300 \
+    --button=Aceptar:0 \
+    --center \
+    --text="Selecciona A B M C L : " \
+    --column="ABMCL Grupos" \
+    "Alta" "Baja" "Modificacion" "Consulta" "Listado" "Salir (Esc)")
+  ans=$?
+  if [ $ans -eq 0 ]
+  then
+    case $opcion in
+    Alta*)
+      AltaG;;
+    Baja*)
+      BajaG;;
+    Modif*)
+      ModifG;;
+    Consulta*)
+      ConsG;;
+    Listado*)
+      ListG;;
+    Salir*)
+      return;;
+    esac
+  else
+    return
+  fi
+done
+}
+
+# programa principal
+while true
+do
+  opcion=$(yad --list \
+    --title=" * MENU grupos y usuarios * " \
+    --height=200 \
+    --width=300 \
+    --button=Aceptar:0 \
+    --center \
+    --text="Selecciona grupos o usuarios : " \
+    --column="ABM G / U" \
+    "Grupos" "Usuarios" "Salir (Esc)")
+  ans=$?
+  if [ $ans -eq 0 ]
+  then
+    case $opcion in
+    Grupos*)
+      Grupos;;
+    Usuarios*)
+      Usuarios;;
+    Salir*)
+      exit;;
+    esac
+  else
+    exit
+  fi
+done
+
